@@ -63,7 +63,8 @@ tasks:
   clean:
     desc: Remove the exported tarball and any packed artifacts
     cmds:
-      - rm -f {{.TAR}} {{.NAME}} {{.NAME}}.smolmachine
+      - rm {{.TAR}} {{.NAME}} {{.NAME}}.smolmachine > /dev/null 2>&1 || echo
+      - rm -rf .task > /dev/null 2>&1 || echo
 
   nuke:
     desc: Stop and delete the VM, clean artifacts, and remove the Docker image
