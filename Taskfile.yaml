@@ -1,0 +1,79 @@
+version: '3'
+
+vars:
+  NAME: agent-sandbox
+  IMAGE: agent-sandbox
+  TAR: agent-sandbox.tar
+  SMOLFILE: Smolfile
+  NET_BACKEND: virtio-net
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  build:
+    desc: Build the Docker image and export it to {{.TAR}}
+    sources:
+      - Dockerfile
+      - start-dockerd
+      - agent-home/**/*
+    generates:
+      - '{{.TAR}}'
+    cmds:
+      - docker build -t {{.IMAGE}} .
+      - docker save {{.IMAGE}} -o {{.TAR}}
+
+  create:
+    desc: Create the VM from {{.TAR}}, configured by {{.SMOLFILE}}
+    deps: [build]
+    cmds:
+      - >-
+        smolvm machine create
+        --name {{.NAME}}
+        -s {{.SMOLFILE}}
+        --image ./{{.TAR}}
+        --net-backend {{.NET_BACKEND}}
+
+  start:
+    desc: Start the VM and bring up dockerd inside it
+    cmds:
+      - smolvm machine start --name {{.NAME}}
+      # The /storage/docker bind-mount does not survive stop/start, so this is
+      # required on every boot. The script is idempotent.
+      - smolvm machine exec --name {{.NAME}} -- start-dockerd
+
+  stop:
+    desc: Stop the VM
+    cmds:
+      - smolvm machine stop --name {{.NAME}}
+
+  delete:
+    desc: Delete the VM
+    cmds:
+      - smolvm machine delete --name {{.NAME}}
+
+  shell:
+    desc: Open an interactive shell in the VM as agent
+    cmds:
+      - smolvm machine shell --name {{.NAME}}
+
+  clean:
+    desc: Remove the exported tarball and any packed artifacts
+    cmds:
+      - rm -f {{.TAR}} {{.NAME}} {{.NAME}}.smolmachine
+
+  nuke:
+    desc: Stop and delete the VM, clean artifacts, and remove the Docker image
+    cmds:
+      # Each step is best-effort: the VM may already be stopped, already gone,
+      # or never created. Nothing here should abort the teardown.
+      - cmd: smolvm machine stop --name {{.NAME}}
+        ignore_error: true
+      - cmd: smolvm machine delete --name {{.NAME}}
+        ignore_error: true
+      - task: clean
+      - cmd: docker rmi -f {{.IMAGE}}
+        ignore_error: true

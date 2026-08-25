@@ -1,0 +1,72 @@
+# Smolfile — agent-sandbox (Ubuntu image + in-VM Docker)
+#
+# Adapted from examples/docker-in-vm/docker.smolfile, which uses bare Alpine.
+# Differences: docker is already installed in the image (docker.io +
+# docker-compose-v2), so there is no `apk add` step; and the agent user is
+# already in the docker group.
+#
+# Create:
+#   smolvm machine create --name agent-sandbox \
+#     -s ./agent-sandbox.smolfile \
+#     --image ./agent-sandbox.tar \
+#     --net-backend virtio-net
+#   smolvm machine start --name agent-sandbox
+#   smolvm machine exec --name agent-sandbox -- start-dockerd
+#
+# The exec line is needed after EVERY start — the bind-mount does not survive
+# stop/start. See start-dockerd; it is idempotent, so re-running is harmless.
+
+cpus = 4
+memory = 8192
+
+net = true
+
+# ext4 disk (GiB) mounted at /storage. This is what makes overlay2 work —
+# /var/lib/docker gets bind-mounted onto it. Size for your image pulls plus
+# build cache; 20 is the example's value and is tight for Ubuntu-based work.
+storage = 40
+
+workdir = "/home/agent"
+
+# Expose the guest's docker.sock to the host over vsock. smolvm prints the
+# host path on start:
+#   DOCKER_HOST=unix://<vm-data-dir>/docker.sock docker ps
+# Recommended over the TCP endpoint — the socket is itself the trust boundary,
+# so there is no unauthenticated network surface. Drop this line if you only
+# ever drive docker from inside the VM.
+docker_socket = true
+
+# Runs once, at create time. Creates the directory and does the first
+# bind-mount; start-dockerd redoes the mount on subsequent boots.
+init = [
+  "mkdir -p /storage/docker /var/lib/docker",
+  "mount --bind /storage/docker /var/lib/docker",
+]
+
+# ---------------------------------------------------------------------------
+# Egress allow-list.
+#
+# NOTE: this now has to cover docker registry traffic too, or `docker pull`
+# fails with DNS errors — --allow-host filters resolution, not just routing.
+# Comment the whole table out for unrestricted egress while you get set up.
+# ---------------------------------------------------------------------------
+[network]
+allow_hosts = [
+  # apt
+  "archive.ubuntu.com",
+  "security.ubuntu.com",
+  # docker hub
+  "registry-1.docker.io",
+  "auth.docker.io",
+  "production.cloudflare.docker.com",
+  # git
+  "github.com",
+  "codeload.github.com",
+  "objects.githubusercontent.com",
+  # agent tooling — add your provider endpoints here
+  "registry.npmjs.org",
+  "api.anthropic.com",
+]
+
+[auth]
+ssh_agent = true
