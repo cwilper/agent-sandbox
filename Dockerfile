@@ -54,7 +54,10 @@ RUN useradd --create-home --shell /usr/bin/zsh --groups docker agent \
 # ---------------------------------------------------------------------------
 # Brings up dockerd inside the guest. Must be run after every `machine start`:
 #
-#   smolvm machine exec --name agent-sandbox -- start-dockerd
+#   smolvm machine exec --name agent-sandbox -- sudo start-dockerd
+#
+# sudo because exec lands as agent (see USER below); the mount and the daemon
+# both need root.
 #
 # It re-applies the /storage/docker bind-mount, which does not survive a VM
 # stop/start and which overlay2 requires. See the script for why.

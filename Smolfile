@@ -2,19 +2,17 @@
 #
 # Adapted from examples/docker-in-vm/docker.smolfile, which uses bare Alpine.
 # Differences: docker is already installed in the image (docker.io +
-# docker-compose-v2), so there is no `apk add` step; and the agent user is
-# already in the docker group.
+# docker-compose-v2), the agent user is already in the docker group, and the
+# init commands need sudo — see below.
 #
 # Create:
-#   smolvm machine create --name agent-sandbox \
-#     -s ./agent-sandbox.smolfile \
-#     --image ./agent-sandbox.tar \
-#     --net-backend virtio-net
+#   smolvm machine create --name agent-sandbox -s ./Smolfile \
+#     --image ./agent-sandbox.tar --net-backend virtio-net
 #   smolvm machine start --name agent-sandbox
-#   smolvm machine exec --name agent-sandbox -- start-dockerd
+#   smolvm machine exec --name agent-sandbox -- sudo start-dockerd
 #
 # The exec line is needed after EVERY start — the bind-mount does not survive
-# stop/start. See start-dockerd; it is idempotent, so re-running is harmless.
+# stop/start. start-dockerd is idempotent, so re-running is harmless.
 
 cpus = 4
 memory = 8192
@@ -22,8 +20,8 @@ memory = 8192
 net = true
 
 # ext4 disk (GiB) mounted at /storage. This is what makes overlay2 work —
-# /var/lib/docker gets bind-mounted onto it. Size for your image pulls plus
-# build cache; 20 is the example's value and is tight for Ubuntu-based work.
+# /var/lib/docker gets bind-mounted onto it. Size for image pulls plus build
+# cache; 20 is the upstream example's value and is tight for Ubuntu work.
 storage = 40
 
 workdir = "/home/agent"
@@ -31,24 +29,29 @@ workdir = "/home/agent"
 # Expose the guest's docker.sock to the host over vsock. smolvm prints the
 # host path on start:
 #   DOCKER_HOST=unix://<vm-data-dir>/docker.sock docker ps
-# Recommended over the TCP endpoint — the socket is itself the trust boundary,
-# so there is no unauthenticated network surface. Drop this line if you only
-# ever drive docker from inside the VM.
+# Preferred over a TCP endpoint — the socket is itself the trust boundary, so
+# there is no unauthenticated network surface. Drop this line if you only ever
+# drive docker from inside the VM.
 docker_socket = true
 
 # Runs once, at create time. Creates the directory and does the first
-# bind-mount; start-dockerd redoes the mount on subsequent boots.
+# bind-mount; start-dockerd redoes the mount on every subsequent boot.
+#
+# sudo is required. For an image-based machine these commands run inside the
+# OCI container, which honors the image's USER — so they execute as agent, not
+# root. (The upstream Alpine example needs no sudo because a bare VM has no
+# image and runs init as root.)
 init = [
-  "mkdir -p /storage/docker /var/lib/docker",
-  "mount --bind /storage/docker /var/lib/docker",
+  "sudo mkdir -p /storage/docker /var/lib/docker",
+  "sudo mount --bind /storage/docker /var/lib/docker",
 ]
 
 # ---------------------------------------------------------------------------
 # Egress allow-list.
 #
-# NOTE: this now has to cover docker registry traffic too, or `docker pull`
-# fails with DNS errors — --allow-host filters resolution, not just routing.
-# Comment the whole table out for unrestricted egress while you get set up.
+# NOTE: this has to cover docker registry traffic too, or `docker pull` fails
+# with DNS errors — allow_hosts filters resolution, not just routing. Comment
+# the whole table out for unrestricted egress while getting set up.
 # ---------------------------------------------------------------------------
 [network]
 allow_hosts = [

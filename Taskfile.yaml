@@ -42,8 +42,9 @@ tasks:
     cmds:
       - smolvm machine start --name {{.NAME}}
       # The /storage/docker bind-mount does not survive stop/start, so this is
-      # required on every boot. The script is idempotent.
-      - smolvm machine exec --name {{.NAME}} -- start-dockerd
+      # required on every boot. The script is idempotent. sudo is needed
+      # because exec lands as agent, and the mount and daemon need root.
+      - smolvm machine exec --name {{.NAME}} -- sudo start-dockerd
 
   stop:
     desc: Stop the VM
@@ -63,8 +64,7 @@ tasks:
   clean:
     desc: Remove the exported tarball and any packed artifacts
     cmds:
-      - rm {{.TAR}} {{.NAME}} {{.NAME}}.smolmachine > /dev/null 2>&1 || echo
-      - rm -rf .task > /dev/null 2>&1 || echo
+      - rm -f {{.TAR}} {{.NAME}} {{.NAME}}.smolmachine
 
   nuke:
     desc: Stop and delete the VM, clean artifacts, and remove the Docker image
