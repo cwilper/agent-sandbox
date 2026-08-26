@@ -51,13 +51,24 @@ init = [
 ]
 
 # ---------------------------------------------------------------------------
-# Egress allow-list.
+# Egress policy.
+#
+# Two layers: allow_hosts feeds both the DNS filter (names not listed get
+# NXDOMAIN) and the IP filter (entries are re-resolved to CIDRs at every
+# start, and outbound packets are checked by destination IP). allow_cidrs is
+# IP-only and is not re-resolved — use it for stable pins or ranges.
 #
 # NOTE: this has to cover docker registry traffic too, or `docker pull` fails
 # with DNS errors — allow_hosts filters resolution, not just routing. Comment
-# the whole table out for unrestricted egress while getting set up.
+# the whole section out for unrestricted egress while getting set up.
 # ---------------------------------------------------------------------------
 [network]
+# Stable IPs / ranges, applied as written (bare IPs become /32 or /128):
+# allow_cidrs = [
+#   "1.1.1.1",        # single IP
+#   "192.0.2.0/24",   # CIDR range
+# ]
+
 allow_hosts = [
   # apt
   "archive.ubuntu.com",
