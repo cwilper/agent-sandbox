@@ -6,6 +6,7 @@ vars:
   TAR: agent-sandbox.tar
   SMOLFILE: Smolfile
   NET_BACKEND: virtio-net
+  HOST_WORKSPACE: /home/user/Work
 
 tasks:
   default:
@@ -36,6 +37,7 @@ tasks:
         -s {{.SMOLFILE}}
         --image ./{{.TAR}}
         --net-backend {{.NET_BACKEND}}
+        -v {{.HOST_WORKSPACE}}:/home/agent/Work
 
   start:
     desc: Start the VM and bring up dockerd inside it
