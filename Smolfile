@@ -61,6 +61,7 @@ init = [
 allow_hosts = [
   # apt
   "archive.ubuntu.com",
+  "ports.ubuntu.com",
   "security.ubuntu.com",
   # docker hub
   "registry-1.docker.io",
