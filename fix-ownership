@@ -3,7 +3,7 @@
 #
 # Installed to /usr/local/bin/fix-ownership (mode 0755) by the Dockerfile.
 # Run as root on every boot, before start-dockerd:
-#   smolvm machine exec --name agent-sandbox -- sudo fix-ownership
+#   smolvm machine exec --name sandbox -- sudo fix-ownership
 #
 # Optional first argument overrides the mount path.
 #

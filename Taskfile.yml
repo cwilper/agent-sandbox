@@ -1,7 +1,10 @@
 version: '3'
 
 vars:
-  NAME: agent-sandbox
+  # Machine name is intentionally shorter than the project name: smolvm uses
+  # it as the guest's UTS hostname at every boot, and the prompt should read
+  # agent@sandbox. IMAGE/TAR keep the project name.
+  NAME: sandbox
   IMAGE: agent-sandbox
   TAR: agent-sandbox.tar
   SMOLFILE: Smolfile
@@ -59,7 +62,7 @@ tasks:
     desc: Delete the VM
     deps: [stop]
     cmds:
-      - smolvm machine delete --name {{.NAME}}
+      - smolvm machine delete -f --name {{.NAME}}
 
   shell:
     desc: Open an interactive zsh login shell in the VM as agent
@@ -79,7 +82,7 @@ tasks:
       # or never created. Nothing here should abort the teardown.
       - cmd: smolvm machine stop --name {{.NAME}}
         ignore_error: true
-      - cmd: smolvm machine delete --name {{.NAME}}
+      - cmd: smolvm machine delete -f --name {{.NAME}}
         ignore_error: true
       - task: clean
       - cmd: docker rmi -f {{.IMAGE}}

@@ -6,10 +6,10 @@
 # init commands need sudo — see below.
 #
 # Create:
-#   smolvm machine create --name agent-sandbox -s ./Smolfile \
+#   smolvm machine create --name sandbox -s ./Smolfile \
 #     --image ./agent-sandbox.tar --net-backend virtio-net
-#   smolvm machine start --name agent-sandbox
-#   smolvm machine exec --name agent-sandbox -- sudo start-dockerd
+#   smolvm machine start --name sandbox
+#   smolvm machine exec --name sandbox -- sudo start-dockerd
 #
 # The exec line is needed after EVERY start — the bind-mount does not survive
 # stop/start. start-dockerd is idempotent, so re-running is harmless.

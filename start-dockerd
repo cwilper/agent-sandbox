@@ -3,7 +3,7 @@
 #
 # Installed to /usr/local/bin/start-dockerd (mode 0755) by the Dockerfile.
 # Run as root after every `machine start`:
-#   smolvm machine exec --name agent-sandbox -- sudo start-dockerd
+#   smolvm machine exec --name sandbox -- sudo start-dockerd
 #
 # Idempotent: safe to run when the daemon is already up.
 
