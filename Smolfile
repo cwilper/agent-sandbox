@@ -75,6 +75,3 @@ allow_hosts = [
   "registry.npmjs.org",
   "api.anthropic.com",
 ]
-
-[auth]
-ssh_agent = true
