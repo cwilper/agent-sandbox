@@ -76,6 +76,35 @@ COPY start-dockerd /usr/local/bin/start-dockerd
 RUN chmod 0755 /usr/local/bin/start-dockerd
 
 # ---------------------------------------------------------------------------
+# Per-user dev tools (mise, oh-my-zsh, powerlevel10k).
+#
+# Installed as agent rather than root so everything lives under /home/agent
+# and is managed like dotfiles. This is a single stable layer: the image is
+# never pushed, so extra layers cost nothing, and this layer only rebuilds
+# when one of these install commands changes.
+#
+#   mise           -> ~/.local/bin/mise           (curl https://mise.run | sh)
+#   oh-my-zsh      -> ~/.oh-my-zsh                (official installer, unattended)
+#   powerlevel10k  -> ~/.oh-my-zsh/custom/themes  (git clone, per the OMZ docs)
+#
+# The oh-my-zsh installer writes a template .zshrc, but the agent-home/ COPY
+# below overwrites it -- the version-controlled agent-home/.zshrc is the
+# single source of truth for shell config: it sources oh-my-zsh, selects the
+# powerlevel10k theme, and adds ~/.local/bin to PATH for mise.
+#
+# The trailing checks fail the build if a download silently no-ops: `sh -c
+# "$(curl ...)"` and `curl | sh` both exit 0 when curl itself fails.
+# ---------------------------------------------------------------------------
+USER agent
+RUN curl -fsSL https://mise.run | sh \
+  && sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
+  && git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+       /home/agent/.oh-my-zsh/custom/themes/powerlevel10k \
+  && /home/agent/.local/bin/mise --version \
+  && test -f /home/agent/.oh-my-zsh/oh-my-zsh.sh \
+  && test -f /home/agent/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+
+# ---------------------------------------------------------------------------
 # Home directory.
 #
 # The trailing slash on the source copies the *contents* of agent-home/, not
