@@ -42,6 +42,10 @@ docker_socket = true
 # root. (The upstream Alpine example needs no sudo because a bare VM has no
 # image and runs init as root.)
 init = [
+  # First, so the sudo calls below don't warn. sudo resolves the local
+  # hostname for logging and host-based rule matching; nothing maps
+  # agent-sandbox to an address without this.
+  "sudo sh -c 'echo \"127.0.1.1 $(hostname)\" >> /etc/hosts' 2>/dev/null",
   "sudo mkdir -p /storage/docker /var/lib/docker",
   "sudo mount --bind /storage/docker /var/lib/docker",
 ]
@@ -62,6 +66,7 @@ allow_hosts = [
   "registry-1.docker.io",
   "auth.docker.io",
   "production.cloudflare.docker.com",
+  "production.cloudfront.docker.com",
   # git
   "github.com",
   "codeload.github.com",

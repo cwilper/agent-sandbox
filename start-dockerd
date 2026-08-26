@@ -1,9 +1,9 @@
 #!/bin/sh
 # start-dockerd — bring up dockerd inside a smolvm guest.
 #
-# Install to /usr/local/bin/start-dockerd (mode 0755) in the image.
-# Run after every `machine start`:
-#   smolvm machine exec --name agent-sandbox -- start-dockerd
+# Installed to /usr/local/bin/start-dockerd (mode 0755) by the Dockerfile.
+# Run as root after every `machine start`:
+#   smolvm machine exec --name agent-sandbox -- sudo start-dockerd
 #
 # Idempotent: safe to run when the daemon is already up.
 
@@ -12,6 +12,13 @@ set -e
 DATA=/storage/docker
 TARGET=/var/lib/docker
 LOG=/var/log/dockerd.log
+SOCK_GROUP=agent
+
+# smolvm regenerates /etc/hosts on boot, so the create-time entry may be gone.
+# Without it every sudo prints "unable to resolve host". Cosmetic, but noisy.
+if ! grep -q "$(hostname)" /etc/hosts 2>/dev/null; then
+    echo "127.0.1.1 $(hostname)" >> /etc/hosts
+fi
 
 if docker info >/dev/null 2>&1; then
     echo "dockerd already running"
@@ -19,7 +26,7 @@ if docker info >/dev/null 2>&1; then
 fi
 
 # The bind-mount does not survive stop/start, so re-apply it each boot.
-# Without this, dockerd lands on the rootfs overlay and overlay2 is rejected
+# Without it dockerd lands on the rootfs overlay and overlay2 is rejected
 # (ramfs lower layer -> no file handles -> index=off).
 mkdir -p "$DATA" "$TARGET"
 mountpoint -q "$TARGET" || mount --bind "$DATA" "$TARGET"
@@ -27,7 +34,10 @@ mountpoint -q "$TARGET" || mount --bind "$DATA" "$TARGET"
 # Stale pidfile from an unclean shutdown blocks startup.
 rm -f /var/run/docker.pid
 
-dockerd --storage-driver=overlay2 >"$LOG" 2>&1 &
+# --group sets the group owning /var/run/docker.sock. Using agent's PRIMARY
+# group rather than the `docker` supplementary group means access works even
+# if the exec session doesn't initialize supplementary groups.
+dockerd --group "$SOCK_GROUP" --storage-driver=overlay2 >"$LOG" 2>&1 &
 
 i=0
 while [ "$i" -lt 30 ]; do
