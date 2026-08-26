@@ -8,7 +8,7 @@ Docker daemon for building and running containers.
 
 ## Requirements
 
-- Docker
+- [Docker](https://github.com/docker)
 - [task](https://taskfile.dev)
 - [SmolVM](https://smolmachines.com/)
 
@@ -45,9 +45,12 @@ Note: the `/storage/docker` bind-mount that dockerd needs does not survive
 stop/start, so `task start` always re-runs `sudo start-dockerd` (it is
 idempotent).
 
-## Mounting your workspace
+## Limiting disk access
 
-`task create` mounts an absolute path on the host at `~/Work` in the guest:
+The guest sees no host files by default: its filesystem is the image plus its
+own internal disks, and the only shared content is a single workspace mount
+at `~/Work` in the guest. You control which host directory that is — `task
+create` takes an absolute path via `HOST_WORKSPACE`:
 
 ```sh
 task create HOST_WORKSPACE=/home/user/my-project
