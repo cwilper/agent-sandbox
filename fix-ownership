@@ -1,0 +1,79 @@
+#!/bin/sh
+# fix-ownership — make the guest's `agent` user match the host's uid/gid.
+#
+# Installed to /usr/local/bin/fix-ownership (mode 0755) by the Dockerfile.
+# Run as root on every boot, before start-dockerd:
+#   smolvm machine exec --name agent-sandbox -- sudo fix-ownership
+#
+# Optional first argument overrides the mount path.
+#
+# WHY NOT usermod/groupmod:
+#   PID 1 in the guest runs as `agent` (the image sets USER agent), and usermod
+#   refuses to renumber a user with a live process. There is no force flag for
+#   that check. So we edit /etc/passwd and /etc/group directly — they are plain
+#   colon-delimited text and nothing else mutates them at boot.
+#
+# WHY REORDERING RATHER THAN DELETING:
+#   The host gid often collides with a low-numbered system group (macOS `staff`
+#   is gid 20, which Ubuntu assigns to `dialout`). Deleting or renumbering that
+#   group would orphan any files on disk still carrying it. Instead we PREPEND
+#   an `agent` line. glibc's files backend returns the FIRST match, so:
+#     - lookups by id  (ls -l, id)          -> resolve to `agent`
+#     - lookups by name (`dialout`, `sudo`) -> still find the original line
+#   Both names map to one id. Unusual, but legal, and nothing is destroyed.
+#   This degrades to "the group has an odd name" rather than to a broken system
+#   if the gid ever collides with something load-bearing.
+#
+# Idempotent: a no-op once the ids already match, safe to re-run otherwise.
+
+set -eu
+
+MOUNT=${1:-/home/agent/Work}
+USER_NAME=agent
+HOME_DIR=/home/agent
+
+if [ ! -d "$MOUNT" ]; then
+    echo "fix-ownership: $MOUNT not present, nothing to do"
+    exit 0
+fi
+
+HOST_UID=$(stat -c '%u' "$MOUNT")
+HOST_GID=$(stat -c '%g' "$MOUNT")
+CUR_UID=$(id -u "$USER_NAME")
+CUR_GID=$(id -g "$USER_NAME")
+
+if [ "$HOST_UID" = "$CUR_UID" ] && [ "$HOST_GID" = "$CUR_GID" ]; then
+    exit 0
+fi
+
+TMP=$(mktemp)
+trap 'rm -f "$TMP"' EXIT
+
+# --- /etc/passwd: renumber agent, and move its line to the top so that
+# --- uid -> name lookups resolve to `agent` even if the uid collides.
+awk -F: -v OFS=: -v u="$USER_NAME" -v nu="$HOST_UID" -v ng="$HOST_GID" '
+    $1 == u { $3 = nu; $4 = ng; line = $0; next }
+            { rest = rest $0 "\n" }
+    END     { if (line == "") exit 1; printf "%s\n%s", line, rest }
+' /etc/passwd > "$TMP"
+# Redirect through cat rather than mv: preserves the inode, mode and owner.
+cat "$TMP" > /etc/passwd
+
+# --- /etc/group: drop any prior `agent` line, then prepend a fresh one at the
+# --- host gid. Other groups are left completely untouched, including any
+# --- system group that happens to share the number. Supplementary membership
+# --- lines (e.g. docker:x:NNN:agent) are preserved — only the group NAMED
+# --- agent is rewritten.
+awk -F: -v OFS=: -v u="$USER_NAME" -v ng="$HOST_GID" '
+    $1 == u { next }
+            { rest = rest $0 "\n" }
+    END     { printf "%s:x:%s:\n%s", u, ng, rest }
+' /etc/group > "$TMP"
+cat "$TMP" > /etc/group
+
+# --- Guest-local files still carry the old ids. The host mount is NOT touched:
+# --- -xdev stops at the filesystem boundary, and the bind mount is a separate
+# --- filesystem, so the recursion never descends into it.
+find "$HOME_DIR" -xdev -exec chown -h "$HOST_UID:$HOST_GID" {} +
+
+echo "fix-ownership: $USER_NAME is now ${HOST_UID}:${HOST_GID} ($(id -gn "$USER_NAME"))"

@@ -56,6 +56,11 @@ RUN mkdir -p /home/ubuntu \
  && chmod 0440 /etc/sudoers.d/90-agent \
  && visudo -cf /etc/sudoers.d/90-agent
 
+# Hack for changing guest non-root user's uid/gid to match host user's,
+# so that mounts reflect and enforce the correct user/group ownership.
+COPY fix-ownership /usr/local/bin/fix-ownership
+RUN chmod 0755 /usr/local/bin/fix-ownership
+
 # ---------------------------------------------------------------------------
 # Brings up dockerd inside the guest. Must be run after every `machine start`:
 #

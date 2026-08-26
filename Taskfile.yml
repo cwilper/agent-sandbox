@@ -43,6 +43,8 @@ tasks:
     desc: Start the VM and bring up dockerd inside it
     cmds:
       - smolvm machine start --name {{.NAME}}
+      # Make sure our uid/gid match the host's
+      - smolvm machine exec --name {{.NAME}} -- sudo fix-ownership
       # The /storage/docker bind-mount does not survive stop/start, so this is
       # required on every boot. The script is idempotent. sudo is needed
       # because exec lands as agent, and the mount and daemon need root.
