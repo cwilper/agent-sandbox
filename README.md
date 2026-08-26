@@ -8,9 +8,9 @@ Docker daemon for building and running containers.
 
 ## Requirements
 
-- [Docker](https://github.com/docker)
-- [task](https://taskfile.dev)
 - [SmolVM](https://smolmachines.com/)
+- [Docker](https://github.com/docker)
+- [Task](https://taskfile.dev)
 
 Tested with macOS and Ubuntu as the host.
 
