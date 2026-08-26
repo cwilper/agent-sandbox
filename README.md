@@ -22,8 +22,8 @@ task start    # boot the VM and start dockerd inside it
 task shell    # open a shell inside as the agent user
 ```
 
-The guest is Ubuntu 24.04 with a `agent` user (zsh, mise, docker, git, ripgrep,
-...). `agent` has passwordless sudo and is in the `docker` group. Your host
+The guest is Ubuntu 24.04 with a `agent` user (zsh, mise, docker, git, fzf,
+ripgrep, ...). `agent` has passwordless sudo and is in the `docker` group. Your host
 workspace is mounted at `~/Work` in the guest, and the guest's Docker socket is
 exposed to the host over vsock — smolvm prints the path on start, e.g.
 `DOCKER_HOST=unix://<vm-data-dir>/docker.sock docker ps`.

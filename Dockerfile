@@ -41,6 +41,7 @@ RUN --mount=type=cache,target=/var/cache/apt/archives \
        docker-buildx \
        docker-compose-v2 \
       docker.io \
+      fzf \
       git \
       htop \
       ripgrep \
@@ -48,7 +49,22 @@ RUN --mount=type=cache,target=/var/cache/apt/archives \
       vim \
       xsel \
       zsh \
- && rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d
+  # The base image's dpkg config excludes /usr/share/doc/* to keep the image
+  # small, which drops the zsh scripts the fzf package ships under
+  # /usr/share/doc/fzf/examples/. The oh-my-zsh fzf plugin needs them because
+  # the packaged fzf binary is built without the `fzf --zsh` script generator.
+  # Re-unpack the package with the exclude lifted. The base image's Post-Invoke
+  # hook removes downloads from the apt archive cache after every dpkg run, so
+  # the .deb is fetched into the build directory and deleted afterward. The
+  # trailing tests fail the build if either script is missing.
+  && mv /etc/dpkg/dpkg.cfg.d/excludes /tmp/dpkg-excludes \
+  && apt-get download fzf \
+  && dpkg -i ./fzf_*.deb \
+  && rm -f ./fzf_*.deb \
+  && mv /tmp/dpkg-excludes /etc/dpkg/dpkg.cfg.d/excludes \
+  && test -f /usr/share/doc/fzf/examples/completion.zsh \
+  && test -f /usr/share/doc/fzf/examples/key-bindings.zsh \
+  && rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d
 
 # ---------------------------------------------------------------------------
 # The agent user. Here we rename the default ubuntu user.

@@ -14,9 +14,13 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 
 # oh-my-zsh with powerlevel10k (both installed by the Dockerfile).
+# The fzf plugin wires up fzf completion and Ctrl-R history search. Ubuntu's
+# packaged fzf strips the `fzf --zsh` script generator, so the plugin uses the
+# completion and key-binding files the fzf apt package ships under
+# /usr/share/doc/fzf/examples/ instead.
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
-plugins=(git z)
+plugins=(git z fzf)
 source "$ZSH/oh-my-zsh.sh"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
