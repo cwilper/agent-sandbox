@@ -85,3 +85,29 @@ Notes:
   (shared CDN IPs, etc.).
 - You must include registry hosts in the list or `docker pull` will fail.
   Comment the whole `[network]` table out for unrestricted egress.
+
+## Comparison with other agent sandboxes
+
+| | Docker Sandboxes (`sbx`) | E2B | SmolVM-based agent-sandbox (this project) |
+|---|---|---|---|
+| **Isolation** | microVM (proprietary stack) | Firecracker microVM (KVM/Linux) | SmolVM microVM via libkrun (macOS/Linux) |
+| **Primary deployment** | Local dev machine | E2B cloud (default) or self-hosted cluster | Local dev machine or self-hosted server |
+| **Open source** | ❌ Proprietary | ⚠️ SDK Apache-2.0 and infra (`e2b-dev/infra`) open; managed control plane closed | ✅ This repo + SmolVM both open source |
+| **Fully auditable trust boundary** | ❌ Closed | ⚠️ Firecracker and SDK are auditable; managed cloud path is not | ✅ Small enough for one person to read end-to-end |
+| **Sign-in / phone-home required** | ✅ Docker OAuth (one-time, but required) | ✅ Cloud; ❌ Self-hosted | ❌ None |
+| **Air-gap friendly** | ❌ Auth requirement + cloud-hosted governance rule it out | ⚠️ Possible with self-host + mirrored deps; nontrivial | ✅ Build image once, run offline; only need a mirrored registry if the *agent* wants to `docker pull` |
+| **On-prem** | ❌ Local-only product; org governance hosted by Docker | ✅ Terraform + Nomad + Consul; real infra project | ✅ It *is* on-prem — VM runs on your laptop or server |
+| **Host OS** | macOS, Windows, Linux | Linux/KVM (for self-host) | macOS, Linux |
+| **Native agent support** | Claude Code, Codex, Copilot, Gemini, Cursor, Kiro, OpenCode, Droid, Docker Agent | Agnostic — you write the harness | Agnostic today; `opencode` and `pi` TUIs pre-installed *(planned)*, both of which front many providers |
+| **Docker inside the sandbox** | ✅ Per-sandbox daemon | ⚠️ Only if baked into a template | ✅ Guest daemon exposed back to host over vsock |
+| **Governance / audit logs / SIEM** | ✅ Paid org tier | ✅ Enterprise tier | ❌ None |
+| **Cost** | Free CLI; paid governance | Free tier + per-second billing (cloud); infra cost (self-host) | Free |
+| **Maturity** | GA product, experimental features labeled | Established (2022+), production users incl. F100 | ⚠️ Early — single maintainer, no releases yet |
+
+### Notes on the axes that matter most
+
+**Auditable trust boundary** means the code enforcing the sandbox — hypervisor, guest kernel wrapping, mount plumbing, network filter — is open source and small enough to actually read. Docker Sandboxes is a hard no here. Firecracker (E2B) is very well audited on its own, but E2B's managed control plane is not inspectable. agent-sandbox is auditable end-to-end: this repo plus `smol-machines/smolvm`.
+
+**Air-gap.** `sbx` needs a Docker OAuth sign-in at install and its governance layer lives in Docker's cloud, so it isn't practical to run fully disconnected. E2B's cloud mode is off the table by definition; the self-hosted stack is theoretically air-gappable but you're standing up Nomad + Consul and mirroring every dependency. agent-sandbox has no phone-home path — once the image tarball is on disk, the VM boots with no network at all. You only need a mirrored container registry if the *agent inside* wants to pull images.
+
+**On-prem.** Docker Sandboxes doesn't really have an on-prem story: the sandboxes run locally, but everything that would justify a serious deployment (org policy, audit) sits in Docker's cloud. E2B has a genuine self-host path but it's a real infrastructure project. agent-sandbox is on-prem by construction — there's nothing to host except the VM itself.
