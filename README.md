@@ -1,6 +1,6 @@
 # agent-sandbox
 
-A microVM sandbox for running untrusted code and coding agents, built on
+A microVM sandbox for running untrusted code and AI agents, built on
 [SmolVM](https://smolmachines.com/) from Smol Machines. It isolates agents from the host by limiting their disk and network
 access to a single mounted workspace and an egress allow-list, while still
 giving them real power inside the VM: passwordless `sudo` and a working
@@ -92,13 +92,13 @@ Notes:
 |---|---|---|---|
 | **Isolation** | microVM (proprietary stack) | Firecracker microVM (KVM/Linux) | SmolVM microVM via libkrun (macOS/Linux) |
 | **Primary deployment** | Local dev machine | E2B cloud (default) or self-hosted cluster | Local dev machine or self-hosted server |
-| **Open source** | ❌ Proprietary | ⚠️ SDK Apache-2.0 and infra (`e2b-dev/infra`) open; managed control plane closed | ✅ This repo + SmolVM both open source |
+| **Open source** | ❌ Proprietary | ⚠️ SDK Apache-2.0 and infra (`e2b-dev/infra`) open; managed control plane closed | ✅ This repo + SmolVM both open source, Apache 2.0 |
 | **Fully auditable trust boundary** | ❌ Closed | ⚠️ Firecracker and SDK are auditable; managed cloud path is not | ✅ Small enough for one person to read end-to-end |
 | **Sign-in / phone-home required** | ✅ Docker OAuth (one-time, but required) | ✅ Cloud; ❌ Self-hosted | ❌ None |
 | **Air-gap friendly** | ❌ Auth requirement + cloud-hosted governance rule it out | ⚠️ Possible with self-host + mirrored deps; nontrivial | ✅ Build image once, run offline; only need a mirrored registry if the *agent* wants to `docker pull` |
 | **On-prem** | ❌ Local-only product; org governance hosted by Docker | ✅ Terraform + Nomad + Consul; real infra project | ✅ It *is* on-prem — VM runs on your laptop or server |
 | **Host OS** | macOS, Windows, Linux | Linux/KVM (for self-host) | macOS, Linux |
-| **Native agent support** | Claude Code, Codex, Copilot, Gemini, Cursor, Kiro, OpenCode, Droid, Docker Agent | Agnostic — you write the harness | Agnostic today; `opencode` and `pi` TUIs pre-installed *(planned)*, both of which front many providers |
+| **Agent/harness support** | Batteries-included: 9 first-class agent integrations out of the box; BYO harness supported via templates and kits | Build your own: headless code-execution primitive driven from a Python/JS SDK; not a place you run interactive coding TUIs | Bare VM you own: Bring your own harness, or use the pre-installed `opencode` or `pi` TUIs (planned) |
 | **Docker inside the sandbox** | ✅ Per-sandbox daemon | ⚠️ Only if baked into a template | ✅ Guest daemon exposed back to host over vsock |
 | **Governance / audit logs / SIEM** | ✅ Paid org tier | ✅ Enterprise tier | ❌ None |
 | **Cost** | Free CLI; paid governance | Free tier + per-second billing (cloud); infra cost (self-host) | Free |
