@@ -1,0 +1,16 @@
+# Vim
+*.sw?
+*.un?
+tags
+
+# archives
+*.zip
+*.gz
+*.gzip
+
+# osx noise
+.DS_Store
+
+# Python
+*.pyc
+*~

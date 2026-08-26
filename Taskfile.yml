@@ -24,7 +24,7 @@ tasks:
     generates:
       - '{{.TAR}}'
     cmds:
-      - docker build -t {{.IMAGE}} .
+      - docker buildx build -t {{.IMAGE}} --load .
       - docker save {{.IMAGE}} -o {{.TAR}}
 
   create:

@@ -72,6 +72,7 @@ allow_hosts = [
   "github.com",
   "codeload.github.com",
   "objects.githubusercontent.com",
+  "release-assets.githubusercontent.com",
   # agent tooling — add your provider endpoints here
   "registry.npmjs.org",
   "api.anthropic.com",

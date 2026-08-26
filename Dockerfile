@@ -22,14 +22,24 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # docker.io postinst tries to start the daemon; there is no init system in a
 # build layer, so without this it emits noise and can fail the build. Removed
 # in the same layer so it has no effect at runtime.
+#
+# The BuildKit cache mounts persist apt's package and index caches on the
+# build host across builds, so if this layer is invalidated it reinstalls
+# from local .debs instead of re-downloading (requires buildx; see Taskfile).
+#
+# docker-buildx puts the buildx client inside the image, so the in-VM dockerd
+# can also use `docker buildx build`.
 # ---------------------------------------------------------------------------
-RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
- && chmod 0755 /usr/sbin/policy-rc.d \
- && apt-get update \
- && apt-get install -y --no-install-recommends \
-      ca-certificates \
-      curl \
-      docker-compose-v2 \
+RUN --mount=type=cache,target=/var/cache/apt/archives \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
+  && chmod 0755 /usr/sbin/policy-rc.d \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends \
+       ca-certificates \
+       curl \
+       docker-buildx \
+       docker-compose-v2 \
       docker.io \
       git \
       htop \
