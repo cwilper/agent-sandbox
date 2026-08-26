@@ -6,7 +6,7 @@ vars:
   TAR: agent-sandbox.tar
   SMOLFILE: Smolfile
   NET_BACKEND: virtio-net
-  HOST_WORKSPACE: /home/user/Work
+  HOST_WORKSPACE: '{{.HOME}}/Work'
 
 tasks:
   default:
