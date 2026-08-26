@@ -53,13 +53,14 @@ tasks:
 
   delete:
     desc: Delete the VM
+    deps: [stop]
     cmds:
       - smolvm machine delete --name {{.NAME}}
 
   shell:
-    desc: Open an interactive shell in the VM as agent
+    desc: Open an interactive zsh login shell in the VM as agent
     cmds:
-      - smolvm machine shell --name {{.NAME}}
+      - smolvm machine exec -it --name {{.NAME}} -- zsh -l
 
   clean:
     desc: Remove the exported tarball and any packed artifacts
