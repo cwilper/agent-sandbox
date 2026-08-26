@@ -41,12 +41,17 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
  && rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d
 
 # ---------------------------------------------------------------------------
-# The agent user.
+# The agent user. Here we rename the default ubuntu user.
 #
 # The `docker` group already exists — the docker.io package creates it in its
 # postinst — so agent can talk to the daemon socket without sudo.
 # ---------------------------------------------------------------------------
-RUN useradd --create-home --shell /usr/bin/zsh --groups docker agent \
+RUN mkdir -p /home/ubuntu \
+ && usermod -l agent -d /home/agent -m -s /usr/bin/zsh ubuntu \
+ && groupmod -n agent ubuntu \
+ && usermod -aG docker agent \
+ && cp -rT /etc/skel /home/agent \
+ && chown -R agent:agent /home/agent \
  && echo 'agent ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-agent \
  && chmod 0440 /etc/sudoers.d/90-agent \
  && visudo -cf /etc/sudoers.d/90-agent
