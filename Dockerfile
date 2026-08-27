@@ -59,7 +59,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 #
 # The BuildKit cache mounts persist apt's package and index caches on the
 # build host across builds, so if this layer is invalidated it reinstalls
-# from local .debs instead of re-downloading (requires buildx; see Taskfile).
+# from local .debs instead of re-downloading (requires buildx; see bin/abox).
 #
 # docker-buildx puts the buildx client inside the image, so the in-VM dockerd
 # can also use `docker buildx build`.

@@ -10,16 +10,24 @@ Docker daemon for building and running containers.
 
 - [SmolVM](https://smolmachines.com/)
 - [Docker](https://github.com/docker)
-- [Task](https://taskfile.dev)
 
 Tested with macOS and Ubuntu as the host.
 
 ## Quick start
 
+The `bin/abox` script drives everything — put it on your PATH (e.g. in your
+`~/.zshrc`):
+
 ```sh
-task create   # build the image and create the VM (deps on build)
-task start    # boot the VM and start dockerd inside it
-task shell    # open a shell inside as the agent user
+export PATH="/path/to/agent-sandbox/bin:$PATH"
+```
+
+Then:
+
+```sh
+abox create   # build the image (if needed) and create the VM
+abox start    # boot the VM and start dockerd inside it
+abox shell    # open a shell inside as the agent user
 ```
 
 The guest is Ubuntu 24.04 with a `agent` user (zsh, mise, docker, git, fzf,
@@ -28,35 +36,35 @@ workspace is mounted at `~/Work` in the guest, and the guest's Docker socket is
 exposed to the host over vsock — smolvm prints the path on start, e.g.
 `DOCKER_HOST=unix://<vm-data-dir>/docker.sock docker ps`.
 
-## Taskfile targets
+## abox commands
 
-| Target      | What it does                                                        |
-| ----------- | ------------------------------------------------------------------- |
-| `build`     | Build the Docker image and export it to `agent-sandbox.tar`         |
-| `create`    | Create the VM from the tarball, configured by the `Smolfile` (deps on `build`) |
-| `start`     | Start the VM and bring up dockerd inside it (required after every boot) |
-| `stop`      | Stop the VM                                                         |
-| `shell`     | Open an interactive zsh login shell in the VM as `agent`            |
-| `delete`    | Stop and delete the VM                                              |
-| `clean`     | Remove the tarball and packed artifacts                             |
-| `nuke`      | Delete the VM, clean artifacts, and remove the Docker image (best-effort) |
+| Command         | What it does                                                        |
+| --------------- | ------------------------------------------------------------------- |
+| `build`         | Build the Docker image and export it to `agent-sandbox.tar`         |
+| `create [dir]`  | Build if needed, then create the VM from the tarball (configured by the `Smolfile`), mounting `dir` at `~/Work` |
+| `start`         | Start the VM, fix ownership, and bring up dockerd inside it (required after every boot) |
+| `stop`          | Stop the VM                                                         |
+| `shell`         | Open an interactive zsh login shell in the VM as `agent` (also the default with no command) |
+| `delete`        | Stop and delete the VM                                              |
+| `clean`         | Remove the tarball and packed artifacts                             |
+| `nuke`          | Delete the VM, clean artifacts, and remove the Docker image (best-effort) |
 
 Note: the `/storage/docker` bind-mount that dockerd needs does not survive
-stop/start, so `task start` always re-runs `sudo start-dockerd` (it is
+stop/start, so `abox start` always re-runs `sudo start-dockerd` (it is
 idempotent).
 
 ## Limiting disk access
 
 The guest sees no host files by default: its filesystem is the image plus its
 own internal disks, and the only shared content is a single workspace mount
-at `~/Work` in the guest. You control which host directory that is — `task
-create` takes an absolute path via `HOST_WORKSPACE`:
+at `~/Work` in the guest. You control which host directory that is — `abox
+create` takes it as an argument:
 
 ```sh
-task create HOST_WORKSPACE=/home/user/my-project
+abox create /home/user/my-project
 ```
 
-Defaults to `$HOME/Work` if unset.
+Defaults to `$HOME/Work` if not given.
 
 ## Customizing the home directory
 
@@ -74,7 +82,7 @@ Defaults to `$HOME/Work` if unset.
 
 ```sh
 cp ~/.vimrc agent-home/local/
-task build    # (or abox build)
+abox build
 ```
 
 One caveat: whatever you put in `agent-home/local/` is baked into the image
@@ -101,7 +109,7 @@ Notes:
   not re-resolved and takes effect as written.
 - No port filtering: all ports to an allowed IP are allowed.
 - Resolution happens once at start, so a service that rotates IPs may need a
-  re-`task start`. If all names fail to resolve, the policy fails closed
+  re-`abox start`. If all names fail to resolve, the policy fails closed
   (deny-all except the DNS endpoint), not open.
 - Direct connections to a raw IP outside the resolved set are blocked, but
   any traffic to an allowed IP passes regardless of the hostname it is "for"

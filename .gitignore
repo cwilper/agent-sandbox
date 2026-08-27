@@ -1,4 +1,3 @@
-.task/
 agent-sandbox.tar
 
 # Per-user home layer: only the .gitkeep placeholder is tracked; everything

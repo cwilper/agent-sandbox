@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# abox — manage the agent-sandbox microVM without depending on the Taskfile.
+# abox — manage the agent-sandbox microVM.
 # Project files (Dockerfile, Smolfile, agent-home/, fix-ownership, start-dockerd)
 # are expected in the parent of this script's directory (bin/abox -> ../).
 
@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && p
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd -- "$PROJECT_DIR"
 
-# Defaults mirror the Taskfile; override via env.
+# Defaults are overridable via env.
 NAME="${ABOX_MACHINE:-sandbox}"
 IMAGE="${ABOX_IMAGE:-agent-sandbox}"
 TAR="${ABOX_TAR:-agent-sandbox.tar}"
@@ -20,7 +20,7 @@ WORKSPACE="${ABOX_WORKSPACE:-$HOME/Work}"
 
 usage() {
   cat <<EOF
-abox — manage the agent-sandbox microVM (no Taskfile required)
+abox — manage the agent-sandbox microVM
 
 Usage:
   abox [command] [args]
@@ -34,7 +34,7 @@ Commands:
   stop          Stop the VM
   shell         Open an interactive zsh login shell in the VM
   delete        Stop and force-delete the VM
-  clean         Remove exported artifacts (tarball, machine files, .task)
+  clean         Remove exported artifacts (tarball, machine files)
   nuke          Stop + delete the VM, clean artifacts, remove the Docker image
 
 Environment:
@@ -51,8 +51,7 @@ build() {
   docker save "$IMAGE" -o "$TAR"
 }
 
-# Rebuild only if the tarball is missing or a build input is newer than it
-# (mirrors the Taskfile's sources/generates).
+# Rebuild only if the tarball is missing or a build input is newer than it.
 build_if_needed() {
   if [[ -f "$TAR" ]]; then
     local newer
@@ -97,7 +96,6 @@ delete() {
 
 clean() {
   rm -f "$TAR" "$NAME" "$NAME.smolmachine" 2>/dev/null || true
-  rm -rf .task 2>/dev/null || true
 }
 
 nuke() {
