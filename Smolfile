@@ -24,7 +24,9 @@ net = true
 # cache; 20 is the upstream example's value and is tight for Ubuntu work.
 storage = 40
 
-workdir = "/home/agent"
+# Where `machine shell`/`exec` sessions start: the mounted workspace, so every
+# shell drops you in the project.
+workdir = "/home/agent/Work"
 
 # Expose the guest's docker.sock to the host over vsock. smolvm prints the
 # host path on start:

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# abox — manage the agent-sandbox microVM without depending on the Taskfile.
+# Project files (Dockerfile, Smolfile, agent-home/, fix-ownership, start-dockerd)
+# are expected in the parent of this script's directory (bin/abox -> ../).
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
+PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd -- "$PROJECT_DIR"
+
+# Defaults mirror the Taskfile; override via env.
+NAME="${ABOX_MACHINE:-sandbox}"
+IMAGE="${ABOX_IMAGE:-agent-sandbox}"
+TAR="${ABOX_TAR:-agent-sandbox.tar}"
+SMOLFILE="Smolfile"
+NET_BACKEND="${ABOX_NET_BACKEND:-virtio-net}"
+GUEST_WORKSPACE="/home/agent/Work"
+WORKSPACE="${ABOX_WORKSPACE:-$HOME/Work}"
+
+usage() {
+  cat <<EOF
+abox — manage the agent-sandbox microVM (no Taskfile required)
+
+Usage:
+  abox [command] [args]
+
+Commands:
+  (none)        Open an interactive shell (same as: abox shell)
+  build         Build the Docker image and export it to $TAR
+  create [dir]  Build if needed, then create the VM, mounting <dir> at
+                ${GUEST_WORKSPACE} (default: $WORKSPACE)
+  start         Start the VM, fix ownership, and bring up in-VM dockerd
+  stop          Stop the VM
+  shell         Open an interactive zsh login shell in the VM
+  delete        Stop and force-delete the VM
+  clean         Remove exported artifacts (tarball, machine files, .task)
+  nuke          Stop + delete the VM, clean artifacts, remove the Docker image
+
+Environment:
+  ABOX_MACHINE      VM name           (default: $NAME)
+  ABOX_IMAGE        Docker image      (default: $IMAGE)
+  ABOX_TAR          Tarball name      (default: $TAR)
+  ABOX_NET_BACKEND  net backend       (default: $NET_BACKEND)
+  ABOX_WORKSPACE    default create host dir (default: $WORKSPACE)
+EOF
+}
+
+build() {
+  docker buildx build -t "$IMAGE" --load .
+  docker save "$IMAGE" -o "$TAR"
+}
+
+# Rebuild only if the tarball is missing or a build input is newer than it
+# (mirrors the Taskfile's sources/generates).
+build_if_needed() {
+  if [[ -f "$TAR" ]]; then
+    local newer
+    newer="$(find Dockerfile fix-ownership start-dockerd agent-home -type f -newer "$TAR" 2>/dev/null | head -n1 || true)"
+    if [[ -z "$newer" ]]; then
+      echo ">> $TAR is up to date; skipping build"
+      return 0
+    fi
+  fi
+  build
+}
+
+create() {
+  local host_dir="${1:-$WORKSPACE}"
+  build_if_needed
+  smolvm machine create \
+    --name "$NAME" \
+    -s "$SMOLFILE" \
+    --image "./$TAR" \
+    --net-backend "$NET_BACKEND" \
+    -v "$host_dir":$GUEST_WORKSPACE
+}
+
+start() {
+  smolvm machine start --name "$NAME"
+  smolvm machine exec --name "$NAME" -- sudo fix-ownership
+  smolvm machine exec --name "$NAME" -- sudo start-dockerd
+}
+
+stop() {
+  smolvm machine stop --name "$NAME"
+}
+
+shell() {
+  smolvm machine exec -it --name "$NAME" -- zsh -l
+}
+
+delete() {
+  smolvm machine stop --name "$NAME" || true
+  smolvm machine delete -f --name "$NAME"
+}
+
+clean() {
+  rm -f "$TAR" "$NAME" "$NAME.smolmachine" 2>/dev/null || true
+  rm -rf .task 2>/dev/null || true
+}
+
+nuke() {
+  smolvm machine stop --name "$NAME" || true
+  smolvm machine delete -f --name "$NAME" || true
+  clean
+  docker rmi -f "$IMAGE" || true
+}
+
+cmd="${1:-shell}"
+shift || true
+case "$cmd" in
+  build) build ;;
+  create) create "$@" ;;
+  start) start ;;
+  stop) stop ;;
+  shell) shell ;;
+  delete) delete ;;
+  clean) clean ;;
+  nuke) nuke ;;
+  -h|--help|help) usage ;;
+  *) echo "abox: unknown command '$cmd'" >&2; echo >&2; usage >&2; exit 2 ;;
+esac

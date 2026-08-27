@@ -203,7 +203,9 @@ COPY --chown=agent:agent agent-home/ /home/agent/
 
 # ---------------------------------------------------------------------------
 # USER is what makes `smolvm machine shell` and `machine exec` land as agent
-# rather than root. WORKDIR sets where those sessions start.
+# rather than root. WORKDIR only sets the cwd of the long-running CMD process;
+# where `shell`/`exec` sessions actually start is the machine's `workdir` (set
+# in the Smolfile), resolved by smolvm at exec time.
 #
 # CMD keeps the machine alive: smolvm boots image-based machines as a
 # container, so a command that exits would take the VM down with it. Nothing
