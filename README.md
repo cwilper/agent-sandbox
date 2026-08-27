@@ -98,7 +98,7 @@ Notes:
 | **Air-gap friendly** | ❌ Auth requirement + cloud-hosted governance rule it out | ⚠️ Possible with self-host + mirrored deps; nontrivial | ✅ Build image once, run offline; only need a mirrored registry if the *agent* wants to `docker pull` |
 | **On-prem** | ❌ Local-only product; org governance hosted by Docker | ✅ Terraform + Nomad + Consul; real infra project | ✅ It *is* on-prem — VM runs on your laptop or server |
 | **Host OS** | macOS, Windows, Linux | Linux/KVM (for self-host) | macOS, Linux |
-| **Agent/harness support** | Batteries-included: 9 first-class agent integrations out of the box; BYO harness supported via templates and kits | Build your own: headless code-execution primitive driven from a Python/JS SDK; not a place you run interactive coding TUIs | Bare VM you own: Bring your own harness, or use the pre-installed `opencode` TUI (`pi` planned) |
+| **Agent/harness support** | Batteries-included: 9 first-class agent integrations out of the box; BYO harness supported via templates and kits | Build your own: headless code-execution primitive driven from a Python/JS SDK; not a place you run interactive coding TUIs | Bare VM you own: Bring your own harness, or use the pre-installed `opencode` and `pi` TUIs |
 | **Docker inside the sandbox** | ✅ Per-sandbox daemon | ⚠️ Only if baked into a template | ✅ Guest daemon exposed back to host over vsock |
 | **Governance / audit logs / SIEM** | ✅ Paid org tier | ✅ Enterprise tier | ❌ None |
 | **Cost** | Free CLI; paid governance | Free tier + per-second billing (cloud); infra cost (self-host) | Free |

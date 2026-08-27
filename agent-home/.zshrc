@@ -10,8 +10,13 @@ fi
 # overwrites the oh-my-zsh installer's template .zshrc at build time, so it
 # is the single source of truth for shell configuration.
 
-# mise and other per-user installs land here.
+# mise and other per-user installs land here (pi, installed by the
+# Dockerfile, lives in ~/.local/bin via npm --prefix).
 export PATH="$HOME/.local/bin:$PATH"
+
+# node/npm via mise shims (the Dockerfile installs node with mise; pi runs
+# on it).
+export PATH="$HOME/.local/share/mise/shims:$PATH"
 
 # opencode (pre-installed by the Dockerfile; its --no-modify-path flag means
 # the installer never touches this file).
