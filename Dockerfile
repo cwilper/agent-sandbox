@@ -12,8 +12,24 @@
 
 FROM ubuntu:24.04
 
+# opencode (pre-installed by the per-user dev tools layer below) phones home
+# in three places: an auto-update check against api.github.com, a model
+# catalog fetch from models.opencode.ai, and LSP server auto-downloads. None
+# of those hosts are in the VM's egress allow-list, but the flags make the
+# guarantee explicit in the image itself, and env (unlike .zshrc) applies to
+# non-login `smolvm machine exec` sessions too. The env form also cannot be
+# overridden by a project-level opencode.json, which wins over the global
+# config below — the sandbox runs untrusted projects, so this matters.
+# PATH adds the per-user tool directories (mise, opencode) for *every*
+# process in the image, including non-interactive `smolvm machine exec`
+# sessions, which never read ~/.zshrc. (~/.zshrc exports them too, for
+# interactive shells.)
 ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=C.UTF-8
+    LANG=C.UTF-8 \
+    PATH=/home/agent/.local/bin:/home/agent/.opencode/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    OPENCODE_DISABLE_AUTOUPDATE=true \
+    OPENCODE_DISABLE_MODELS_FETCH=true \
+    OPENCODE_DISABLE_LSP_DOWNLOAD=true
 
 # ---------------------------------------------------------------------------
 # Packages.
@@ -102,7 +118,7 @@ COPY start-dockerd /usr/local/bin/start-dockerd
 RUN chmod 0755 /usr/local/bin/start-dockerd
 
 # ---------------------------------------------------------------------------
-# Per-user dev tools (mise, oh-my-zsh, powerlevel10k).
+# Per-user dev tools (mise, oh-my-zsh, powerlevel10k, opencode).
 #
 # Installed as agent rather than root so everything lives under /home/agent
 # and is managed like dotfiles. This is a single stable layer: the image is
@@ -112,11 +128,19 @@ RUN chmod 0755 /usr/local/bin/start-dockerd
 #   mise           -> ~/.local/bin/mise           (curl https://mise.run | sh)
 #   oh-my-zsh      -> ~/.oh-my-zsh                (official installer, unattended)
 #   powerlevel10k  -> ~/.oh-my-zsh/custom/themes  (git clone, per the OMZ docs)
+#   opencode       -> ~/.opencode/bin/opencode    (curl https://opencode.ai/install | bash)
 #
 # The oh-my-zsh installer writes a template .zshrc, but the agent-home/ COPY
 # below overwrites it -- the version-controlled agent-home/.zshrc is the
-# single source of truth for shell config: it sources oh-my-zsh, selects the
-# powerlevel10k theme, and adds ~/.local/bin to PATH for mise.
+# single source of truth for shell configuration: it sources oh-my-zsh,
+# selects the powerlevel10k theme, and adds ~/.local/bin (mise) and
+# ~/.opencode/bin (opencode) to PATH. The opencode installer is told not to
+# modify the shell rc (--no-modify-path) for the same reason.
+#
+# opencode's phone-home behavior is disabled in two places: the ENV block at
+# the top of this file (covers every process, cannot be overridden by a
+# project config) and the global config baked in from
+# agent-home/.config/opencode/opencode.json (the user-visible knob).
 #
 # The trailing checks fail the build if a download silently no-ops: `sh -c
 # "$(curl ...)"` and `curl | sh` both exit 0 when curl itself fails.
@@ -125,8 +149,10 @@ USER agent
 RUN curl -fsSL https://mise.run | sh \
   && sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
   && git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
-       /home/agent/.oh-my-zsh/custom/themes/powerlevel10k \
+        /home/agent/.oh-my-zsh/custom/themes/powerlevel10k \
+  && curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path \
   && /home/agent/.local/bin/mise --version \
+  && /home/agent/.opencode/bin/opencode --version \
   && test -f /home/agent/.oh-my-zsh/oh-my-zsh.sh \
   && test -f /home/agent/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 

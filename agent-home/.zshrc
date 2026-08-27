@@ -13,6 +13,10 @@ fi
 # mise and other per-user installs land here.
 export PATH="$HOME/.local/bin:$PATH"
 
+# opencode (pre-installed by the Dockerfile; its --no-modify-path flag means
+# the installer never touches this file).
+export PATH="$HOME/.opencode/bin:$PATH"
+
 # oh-my-zsh with powerlevel10k (both installed by the Dockerfile).
 # The fzf plugin wires up fzf completion and Ctrl-R history search. Ubuntu's
 # packaged fzf strips the `fzf --zsh` script generator, so the plugin uses the

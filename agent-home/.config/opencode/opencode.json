@@ -1,0 +1,10 @@
+{
+  // agent-sandbox: opencode's global config.
+  // autoupdate: false  - no auto-update check against api.github.com on startup.
+  // share: "disabled"  - remove the /share session-sharing feature (opncd.ai) entirely.
+  // The Dockerfile's ENV block also sets the matching OPENCODE_DISABLE_* flags,
+  // which apply to non-login exec sessions and cannot be overridden by a
+  // project-level opencode.json.
+  "autoupdate": false,
+  "share": "disabled"
+}
