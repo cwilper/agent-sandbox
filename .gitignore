@@ -1,2 +1,8 @@
 .task/
 agent-sandbox.tar
+
+# Per-user home layer: only the .gitkeep placeholder is tracked; everything
+# else dropped in there (personal dotfiles, etc.) is ignored and never
+# committed. It still ends up in the image at build time (see the Dockerfile).
+agent-home/local/*
+!agent-home/local/.gitkeep

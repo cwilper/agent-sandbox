@@ -71,6 +71,10 @@ init = [
 #   "192.0.2.0/24",   # CIDR range
 # ]
 
+allow_cidrs = [
+  "191.168.1.6"
+]
+
 allow_hosts = [
   # apt
   "archive.ubuntu.com",

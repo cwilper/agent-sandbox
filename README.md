@@ -58,6 +58,29 @@ task create HOST_WORKSPACE=/home/user/my-project
 
 Defaults to `$HOME/Work` if unset.
 
+## Customizing the home directory
+
+`/home/agent` is assembled at image-build time from two layers under
+`agent-home/`:
+
+- **`agent-home/global/`** — the version-controlled defaults: dotfiles and
+  dotdirs (`.zshrc`, `.vimrc`, the opencode and pi global configs, ...) that
+  every sandbox gets.
+- **`agent-home/local/`** — a per-user customization layer. Everything in it
+  is gitignored except a `.gitkeep` placeholder that reserves the directory,
+  so personal files never reach git. Drop copies of your own dotfiles there
+  and rebuild: the layer is copied into `/home/agent` *after* `global/`, so
+  on name collisions your files win.
+
+```sh
+cp ~/.vimrc agent-home/local/
+task build    # (or abox build)
+```
+
+One caveat: whatever you put in `agent-home/local/` is baked into the image
+tarball `agent-sandbox.tar` (and survives in any image copy made from it).
+Don't put live credentials or SSH keys in there.
+
 ## Limiting network access
 
 Outbound traffic is filtered by the `[network]` section of the `Smolfile`,

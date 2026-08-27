@@ -156,10 +156,10 @@ RUN chmod 0755 /usr/local/bin/start-dockerd
 #   node           -> ~/.local/share/mise/shims   (mise use -g node@22; pi needs Node >= 22.19)
 #   pi             -> ~/.local/bin/pi             (npm -g --ignore-scripts --prefix ~/.local)
 #
-# The oh-my-zsh installer writes a template .zshrc, but the agent-home/ COPY
-# below overwrites it -- the version-controlled agent-home/.zshrc is the
-# single source of truth for shell configuration: it sources oh-my-zsh,
-# selects the powerlevel10k theme, and adds ~/.local/bin (mise, pi),
+# The oh-my-zsh installer writes a template .zshrc, but the
+# agent-home/global/ COPY below overwrites it -- the version-controlled
+# agent-home/global/.zshrc is the single source of truth for shell
+# configuration: it sources oh-my-zsh, selects the powerlevel10k theme, and adds ~/.local/bin (mise, pi),
 # ~/.local/share/mise/shims (node) and ~/.opencode/bin (opencode) to PATH.
 # The opencode installer is told not to modify the shell rc
 # (--no-modify-path) for the same reason.
@@ -167,8 +167,8 @@ RUN chmod 0755 /usr/local/bin/start-dockerd
 # The phone-home behavior of opencode and pi is disabled in two places: the
 # ENV block at the top of this file (covers every process, cannot be
 # overridden by a project config) and the global configs baked in from
-# agent-home/.config/opencode/opencode.json and
-# agent-home/.pi/agent/settings.json (the user-visible knobs).
+# agent-home/global/.config/opencode/opencode.json and
+# agent-home/global/.pi/agent/settings.json (the user-visible knobs).
 #
 # The trailing checks fail the build if a download silently no-ops: `sh -c
 # "$(curl ...)"` and `curl | sh` both exit 0 when curl itself fails.
@@ -189,17 +189,28 @@ RUN curl -fsSL https://mise.run | sh \
   && test -f /home/agent/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 
 # ---------------------------------------------------------------------------
-# Home directory.
+# Home directory, in two layers.
 #
-# The trailing slash on the source copies the *contents* of agent-home/, not
-# the directory itself. Dotfiles and dotdirs are included. COPY preserves mode
-# bits from the build context verbatim; --chown sets ownership recursively
-# without touching them.
+# Both sources carry a trailing slash, so COPY copies the *contents* of the
+# directory, not the directory itself. Dotfiles and dotdirs are included.
+# COPY preserves mode bits from the build context verbatim; --chown sets
+# ownership recursively without touching them.
 #
-# This merges with the /etc/skel files useradd already placed there — where
-# names collide, agent-home/ wins.
+# global/ is the version-controlled default home content. It merges with the
+# /etc/skel files useradd already placed in /home/agent — where names
+# collide, global/ wins.
+#
+# local/ is the per-user customization layer: everything in it is
+# gitignored except the .gitkeep placeholder (see .gitignore), so it never
+# reaches git. Files dropped there before a build — copies of personal
+# dotfiles, etc. — are baked into the image on top of global/, so on name
+# collisions local/ wins. They therefore also end up inside the image
+# tarball, which is why the README keeps sensitive material out of it.
+# (.gitkeep itself is copied into /home/agent too; it is a harmless
+# zero-byte file.)
 # ---------------------------------------------------------------------------
-COPY --chown=agent:agent agent-home/ /home/agent/
+COPY --chown=agent:agent agent-home/global/ /home/agent/
+COPY --chown=agent:agent agent-home/local/ /home/agent/
 
 # ---------------------------------------------------------------------------
 # USER is what makes `smolvm machine shell` and `machine exec` land as agent
