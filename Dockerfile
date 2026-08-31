@@ -181,6 +181,7 @@ RUN curl -fsSL https://mise.run | sh \
   && curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path \
   && mise use -g node@22 \
   && npm install -g --ignore-scripts --prefix /home/agent/.local @earendil-works/pi-coding-agent \
+  && npm install -g --prefix /home/agent/.local firecrawl-cli \
   && /home/agent/.local/bin/mise --version \
   && /home/agent/.local/share/mise/shims/node --version \
   && /home/agent/.opencode/bin/opencode --version \
